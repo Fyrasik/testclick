@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Монетный кликер</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.2rem;
+        }
+        
+        .screen {
+            display: none;
+        }
+        
+        .active {
+            display: block;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            border-color: #4a90e2;
+            outline: none;
+        }
+        
+        button {
+            background: linear-gradient(to right, #4a90e2, #63b3ed);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .coin {
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle at 30% 30%, #ffd700, #daa520);
+            border-radius: 50%;
+            margin: 30px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #8b6914;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        
+        .coin:active {
+            transform: scale(0.95);
+        }
+        
+        .stats {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .stats p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        
+        .leaderboard {
+            margin-top: 20px;
+            text-align: left;
+        }
+        
+        .leaderboard h2 {
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+        }
+        
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 15px;
+            background-color: #f1f3f5;
+            margin-bottom: 8px;
+            border-radius: 5px;
+        }
+        
+        .leaderboard-item.current-user {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+        
+        .logout-btn {
+            background: linear-gradient(to right, #e74c3c, #c0392b);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #2ecc71;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Экран входа -->
+        <div id="login-screen" class="screen active">
+            <h1>Монетный кликер</h1>
+            <p>Введите ваш никнейм, чтобы начать играть</p>
+            <input type="text" id="username-input" placeholder="Ваш никнейм" maxlength="20">
+            <button id="login-btn">Начать игру</button>
+        </div>
+        
+        <!-- Экран игры -->
+        <div id="game-screen" class="screen">
+            <h1>Монетный кликер</h1>
+            <div class="stats">
+                <p>Игрок: <span id="player-name"></span></p>
+                <p>Баланс: <span id="balance">0</span> монет</p>
+                <p>Кликов: <span id="click-count">0</span></p>
+            </div>
+            
+            <div class="coin" id="coin">
+                <span>КЛИК!</span>
+            </div>
+            
+            <div class="leaderboard">
+                <h2>Таблица лидеров</h2>
+                <div id="leaderboard-list"></div>
+            </div>
+            
+            <button id="logout-btn" class="logout-btn">Выйти</button>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Элементы DOM
+        const loginScreen = document.getElementById('login-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const usernameInput = document.getElementById('username-input');
+        const loginBtn = document.getElementById('login-btn');
+        const playerName = document.getElementById('player-name');
+        const balanceElement = document.getElementById('balance');
+        const clickCountElement = document.getElementById('click-count');
+        const coin = document.getElementById('coin');
+        const leaderboardList = document.getElementById('leaderboard-list');
+        const logoutBtn = document.getElementById('logout-btn');
+        const notification = document.getElementById('notification');
+        
+        // Текущий пользователь
+        let currentUser = null;
+        
+        // Инициализация базы данных (localStorage)
+        function initDatabase() {
+            if (!localStorage.getItem('users')) {
+                localStorage.setItem('users', JSON.stringify({}));
+            }
+        }
+        
+        // Получение всех пользователей
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users')) || {};
+        }
+        
+        // Сохранение пользователя
+        function saveUser(username, balance = 0, clicks = 0) {
+            const users = getUsers();
+            users[username] = {
+                balance: balance,
+                clicks: clicks,
+                lastPlayed: new Date().toISOString()
+            };
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        
+        // Получение данных пользователя
+        function getUser(username) {
+            const users = getUsers();
+            return users[username] || null;
+        }
+        
+        // Обновление баланса и кликов
+        function updateUserStats(username, balance, clicks) {
+            saveUser(username, balance, clicks);
+        }
+        
+        // Показать уведомление
+        function showNotification(message, isSuccess = true) {
+            notification.textContent = message;
+            notification.style.backgroundColor = isSuccess ? '#2ecc71' : '#e74c3c';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Обновление таблицы лидеров
+        function updateLeaderboard() {
+            const users = getUsers();
+            const sortedUsers = Object.entries(users)
+                .sort((a, b) => b[1].balance - a[1].balance)
+                .slice(0, 10); // Топ-10
+            
+            leaderboardList.innerHTML = '';
+            
+            if (sortedUsers.length === 0) {
+                leaderboardList.innerHTML = '<p>Пока нет игроков</p>';
+                return;
+            }
+            
+            sortedUsers.forEach(([username, data], index) => {
+                const item = document.createElement('div');
+                item.className = 'leaderboard-item';
+                if (username === currentUser) {
+                    item.classList.add('current-user');
+                }
+                
+                item.innerHTML = `
+                    <span>${index + 1}. ${username}</span>
+                    <span>${data.balance} монет</span>
+                `;
+                
+                leaderboardList.appendChild(item);
+            });
+        }
+        
+        // Вход в игру
+        function login() {
+            const username = usernameInput.value.trim();
+            
+            if (!username) {
+                showNotification('Пожалуйста, введите никнейм', false);
+                return;
+            }
+            
+            currentUser = username;
+            
+            // Если пользователь новый, создаем запись
+            if (!getUser(username)) {
+                saveUser(username, 0, 0);
+                showNotification(`Добро пожаловать, ${username}!`);
+            } else {
+                showNotification(`С возвращением, ${username}!`);
+            }
+            
+            // Обновляем интерфейс
+            playerName.textContent = username;
+            const userData = getUser(username);
+            balanceElement.textContent = userData.balance;
+            clickCountElement.textContent = userData.clicks;
+            
+            // Переключаем экраны
+            loginScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            
+            // Обновляем таблицу лидеров
+            updateLeaderboard();
+        }
+        
+        // Выход из игры
+        function logout() {
+            currentUser = null;
+            usernameInput.value = '';
+            
+            // Переключаем экраны
+            gameScreen.classList.remove('active');
+            loginScreen.classList.add('active');
+        }
+        
+        // Обработка клика по монетке
+        function handleCoinClick() {
+            if (!currentUser) return;
+            
+            const userData = getUser(currentUser);
+            const newBalance = userData.balance + 1;
+            const newClicks = userData.clicks + 1;
+            
+            // Обновляем данные
+            updateUserStats(currentUser, newBalance, newClicks);
+            
+            // Обновляем интерфейс
+            balanceElement.textContent = newBalance;
+            clickCountElement.textContent = newClicks;
+            
+            // Обновляем таблицу лидеров
+            updateLeaderboard();
+            
+            // Анимация монетки
+            coin.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                coin.style.transform = 'scale(1)';
+            }, 100);
+        }
+        
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', () => {
+            initDatabase();
+            
+            // Обработчики событий
+            loginBtn.addEventListener('click', login);
+            logoutBtn.addEventListener('click', logout);
+            coin.addEventListener('click', handleCoinClick);
+            
+            // Вход по нажатию Enter
+            usernameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+            
+            // Проверяем, есть ли активный пользователь
+            const lastUser = localStorage.getItem('lastUser');
+            if (lastUser && getUser(lastUser)) {
+                usernameInput.value = lastUser;
+                login();
+            }
+        });
+    </script>
+</body>
+</html>
